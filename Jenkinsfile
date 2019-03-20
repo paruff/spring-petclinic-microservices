@@ -6,24 +6,16 @@ podTemplate(label: label, containers: [
 
     node(label) {
         stage('Get a Maven project') {
-            git 'https://github.com/jenkinsci/kubernetes-plugin.git'
+//            checkout scm
             container('maven') {
                 stage('Build a Maven project') {
                     sh 'mvn -B clean install'
                 }
-            }
-        }
-
-        stage('Get a Golang project') {
-            git url: 'https://github.com/hashicorp/terraform.git'
-            container('golang') {
-                stage('Build a Go project') {
-                    sh """
-                    mkdir -p /go/src/github.com/hashicorp
-                    ln -s `pwd` /go/src/github.com/hashicorp/terraform
-                    cd /go/src/github.com/hashicorp/terraform && make core-dev
-                    """
-                }
+            
+                stage 'Maven Static Analysis'
+                    withSonarQubeEnv {
+                        sh "mvn clean sonar:sonar"
+                    }
             }
         }
 
