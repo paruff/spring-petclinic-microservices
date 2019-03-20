@@ -6,7 +6,7 @@ podTemplate(label: label, containers: [
 
     node(label) {
         stage('Get a Maven project') {
-//            checkout scm
+            checkout scm
             container('maven') {
                 stage('Build a Maven project') {
                     sh 'mvn -B clean install'
