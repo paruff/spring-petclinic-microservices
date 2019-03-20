@@ -1,6 +1,7 @@
 def label = "mypod-${UUID.randomUUID().toString()}"
 podTemplate(label: label, containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.6.0-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'maven', image: 'maven:3.6.0-jdk-11-slim', ttyEnabled: true, command: 'cat'),
+    containerTemplate(name: 'gradle', image: 'gradle:4.5.1-jdk9', command: 'cat', ttyEnabled: true),
     containerTemplate(name: 'golang', image: 'golang:1.8.0', ttyEnabled: true, command: 'cat')
   ]) {
 
