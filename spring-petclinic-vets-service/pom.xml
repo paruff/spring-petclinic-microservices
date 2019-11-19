@@ -11,11 +11,20 @@
 	<parent>
 		<groupId>org.springframework.samples</groupId>
 		<artifactId>spring-petclinic-microservices</artifactId>
-		<version>1.5.3</version>
+		<version>2.2.1</version>
 	</parent>
+
+    <properties>
+        <docker.image.exposed.port>8081</docker.image.exposed.port>
+        <docker.image.dockerfile.dir>${basedir}/../docker</docker.image.dockerfile.dir>
+    </properties>
 
 	<dependencies>
         <!-- Spring Boot -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
@@ -38,10 +47,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
 
         <!-- Spring Cloud-->
         <dependency>
@@ -54,7 +59,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-eureka</artifactId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -78,7 +83,6 @@
             <groupId>org.jolokia</groupId>
             <artifactId>jolokia-core</artifactId>
         </dependency>
-
 		<dependency>
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
@@ -89,7 +93,22 @@
 			<artifactId>mysql-connector-java</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
 
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 
     <profiles>
@@ -101,28 +120,6 @@
                         <groupId>com.spotify</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
                         <version>${docker.plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>build</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <imageName>${docker.image.prefix}/${project.artifactId}</imageName>
-                            <dockerDirectory>${project.basedir}/src/main/docker</dockerDirectory>
-                            <resources>
-                                <resource>
-                                    <targetPath>/</targetPath>
-                                    <directory>${project.build.directory}</directory>
-                                    <include>${project.build.finalName}.jar</include>
-                                </resource>
-                            </resources>
-                            <buildArgs>
-                                <ARTIFACT_NAME>${project.build.finalName}</ARTIFACT_NAME>
-                            </buildArgs>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
