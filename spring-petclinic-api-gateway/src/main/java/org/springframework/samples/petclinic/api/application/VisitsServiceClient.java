@@ -16,33 +16,48 @@
 package org.springframework.samples.petclinic.api.application;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
+import org.springframework.samples.petclinic.api.dto.VisitDetails;
+import org.springframework.samples.petclinic.api.dto.Visits;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
 
 /**
  * @author Maciej Szarlinski
  */
 @Component
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@RequiredArgsConstructor
 public class VisitsServiceClient {
 
-    private final RestTemplate loadBalancedRestTemplate;
+    // Could be changed for testing purpose
+    private String hostname = "http://visits-service/";
 
-    public Map<Integer, List<VisitDetails>> getVisitsForPets(final List<Integer> petIds, final int ownerId) {
-        //TODO:  expose batch interface in Visit Service
-        final ParameterizedTypeReference<List<VisitDetails>> responseType = new ParameterizedTypeReference<List<VisitDetails>>() {
-        };
-        return petIds.parallelStream()
-            .flatMap(petId -> loadBalancedRestTemplate.exchange("http://visits-service/owners/{ownerId}/pets/{petId}/visits", HttpMethod.GET, null,
-                responseType, ownerId, petId).getBody().stream())
-            .collect(groupingBy(VisitDetails::getPetId));
+    private final WebClient.Builder webClientBuilder;
+
+    // FIXME HYSTRIX @HystrixCommand(fallbackMethod = "emptyVisitsForPets")
+    public Mono<Visits> getVisitsForPets(final List<Integer> petIds) {
+        return webClientBuilder.build()
+            .get()
+            .uri(hostname + "pets/visits?petId={petId}", joinIds(petIds))
+            .retrieve()
+            .bodyToMono(Visits.class);
+    }
+
+    private String joinIds(List<Integer> petIds) {
+        return petIds.stream().map(Object::toString).collect(joining(","));
+    }
+
+    private Mono<Map<Integer, List<VisitDetails>>> emptyVisitsForPets(Mono<List<Integer>> petIds) {
+        return Mono.just(Collections.emptyMap());
+    }
+
+    void setHostname(String hostname) {
+        this.hostname = hostname;
     }
 }

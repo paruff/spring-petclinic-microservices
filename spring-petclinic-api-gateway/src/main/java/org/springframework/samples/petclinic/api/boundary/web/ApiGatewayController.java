@@ -16,26 +16,25 @@
 package org.springframework.samples.petclinic.api.boundary.web;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.samples.petclinic.api.application.CustomersServiceClient;
-import org.springframework.samples.petclinic.api.application.OwnerDetails;
-import org.springframework.samples.petclinic.api.application.VisitDetails;
 import org.springframework.samples.petclinic.api.application.VisitsServiceClient;
+import org.springframework.samples.petclinic.api.dto.OwnerDetails;
+import org.springframework.samples.petclinic.api.dto.Visits;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static java.util.Collections.emptyList;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Maciej Szarlinski
  */
 @RestController
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@RequiredArgsConstructor
+@RequestMapping("/api/gateway")
 public class ApiGatewayController {
 
     private final CustomersServiceClient customersServiceClient;
@@ -43,14 +42,24 @@ public class ApiGatewayController {
     private final VisitsServiceClient visitsServiceClient;
 
     @GetMapping(value = "owners/{ownerId}")
-    public OwnerDetails getOwnerDetails(final @PathVariable int ownerId) {
-        final OwnerDetails owner = customersServiceClient.getOwner(ownerId);
-        supplyVisits(owner, visitsServiceClient.getVisitsForPets(owner.getPetIds(), ownerId));
-        return owner;
+    public Mono<OwnerDetails> getOwnerDetails(final @PathVariable int ownerId) {
+        return customersServiceClient.getOwner(ownerId)
+            .flatMap(owner ->
+                visitsServiceClient.getVisitsForPets(owner.getPetIds())
+                    .map(addVisitsToOwner(owner))
+            );
+
     }
 
-    private void supplyVisits(final OwnerDetails owner, final Map<Integer, List<VisitDetails>> visitsMapping) {
-        owner.getPets().forEach(pet ->
-            pet.getVisits().addAll(Optional.ofNullable(visitsMapping.get(pet.getId())).orElse(emptyList())));
+    private Function<Visits, OwnerDetails> addVisitsToOwner(OwnerDetails owner) {
+        return visits -> {
+            owner.getPets()
+                .forEach(pet -> pet.getVisits()
+                    .addAll(visits.getItems().stream()
+                        .filter(v -> v.getPetId() == pet.getId())
+                        .collect(Collectors.toList()))
+                );
+            return owner;
+        };
     }
 }
